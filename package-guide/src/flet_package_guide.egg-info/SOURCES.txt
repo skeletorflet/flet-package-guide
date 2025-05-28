@@ -1,0 +1,17 @@
+README.md
+pyproject.toml
+src/flet_package_guide/__init__.py
+src/flet_package_guide/flet_package_guide.py
+src/flet_package_guide.egg-info/PKG-INFO
+src/flet_package_guide.egg-info/SOURCES.txt
+src/flet_package_guide.egg-info/dependency_links.txt
+src/flet_package_guide.egg-info/requires.txt
+src/flet_package_guide.egg-info/top_level.txt
+src/flutter/flet_package_guide/CHANGELOG.md
+src/flutter/flet_package_guide/LICENSE
+src/flutter/flet_package_guide/README.md
+src/flutter/flet_package_guide/pubspec.lock
+src/flutter/flet_package_guide/pubspec.yaml
+src/flutter/flet_package_guide/lib/flet_package_guide.dart
+src/flutter/flet_package_guide/lib/src/create_control.dart
+src/flutter/flet_package_guide/lib/src/flet_package_guide.dart

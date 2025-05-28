@@ -1,0 +1,50 @@
+Metadata-Version: 2.4
+Name: flet-package-guide
+Version: 0.1.0
+Summary: FletPackageGuide control for Flet
+Author-email: Flet contributors <you@example.com>
+Project-URL: Homepage, https://mydomain.dev
+Project-URL: Documentation, https://github.com/MyGithubAccount/flet-package-guide
+Project-URL: Repository, https://github.com/MyGithubAccount/flet-package-guide
+Project-URL: Issues, https://github.com/MyGithubAccount/flet-package-guide/issues
+Requires-Python: >=3.9
+Description-Content-Type: text/markdown
+Requires-Dist: flet>=0.28.3
+
+# flet-package-guide
+FletPackageGuide control for Flet
+
+## Installation
+
+Add dependency to `pyproject.toml` of your Flet app:
+
+* **Git dependency**
+
+Link to git repository:
+
+```
+dependencies = [
+  "flet-package-guide @ git+https://github.com/MyGithubAccount/flet-package-guide",
+  "flet>=0.28.3",
+]
+```
+
+* **PyPi dependency**  
+
+If the package is published on pypi.org:
+
+```
+dependencies = [
+  "flet-package-guide",
+  "flet>=0.28.3",
+]
+```
+
+Build your app:
+```
+flet build macos -v
+```
+
+## Documentation
+
+[Link to documentation](https://MyGithubAccount.github.io/flet-package-guide/)
