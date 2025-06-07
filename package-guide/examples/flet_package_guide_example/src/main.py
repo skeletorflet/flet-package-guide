@@ -1,6 +1,9 @@
 import flet as ft
-from flet_package_guide import FletPackageGuide, UrlLauncherControl # Import UrlLauncherControl
-import json # Added import for json
+from flet_package_guide import (
+    FletPackageGuide,
+    UrlLauncherControl,
+)  # Import UrlLauncherControl
+import json  # Added import for json
 
 
 def main(page: ft.Page):
@@ -15,7 +18,13 @@ def main(page: ft.Page):
             complex_data={
                 "hello": "world",
                 "foo": "bar",
-                "arrs": {"int": 1, "bool": True, "double": 1.123, "list": ["a", 2, True, [[2], 1]], "size": {"width":300, "height":300}},
+                "arrs": {
+                    "int": 1,
+                    "bool": True,
+                    "double": 1.123,
+                    "list": ["a", 2, True, [[2], 1]],
+                    "size": {"width": 300, "height": 300},
+                },
             },
         )
 
@@ -35,9 +44,11 @@ def main(page: ft.Page):
         # print(f"Raw periodic event data: {e.data}") # For debugging
         try:
             data = json.loads(e.data)
-            periodic_event_text.value = f"Dart periodic event: Counter = {data.get('counter', 'N/A')}"
+            periodic_event_text.value = (
+                f"Dart periodic event: Counter = {data.get('counter', 'N/A')}"
+            )
             # periodic_event_text.update() # Updating the text control individually
-            page.update() # Update the whole page to show changes
+            page.update()  # Update the whole page to show changes
         except json.JSONDecodeError:
             periodic_event_text.value = "Error decoding periodic event data."
             # periodic_event_text.update()
@@ -55,16 +66,24 @@ def main(page: ft.Page):
     # package.update() # If enable_periodic_events was set explicitly after instantiation and requires an update.
 
     # --- Text controls for Robust Error Handling Example ---
-    error_handling_success_text = ft.Text("Result of successful Dart call will appear here.")
-    error_handling_failure_text = ft.Text("Result of failing Dart call will appear here.")
+    error_handling_success_text = ft.Text(
+        "Result of successful Dart call will appear here."
+    )
+    error_handling_failure_text = ft.Text(
+        "Result of failing Dart call will appear here."
+    )
 
     # --- Text control for Bi-directional Shared Value Example ---
-    shared_value_display_text = ft.Text(f"Shared Value: {package.shared_value}") # Initialize with current value
+    shared_value_display_text = ft.Text(
+        f"Shared Value: {package.shared_value}"
+    )  # Initialize with current value
 
     # --- UrlLauncherControl Setup ---
-    url_input = ft.TextField(label="Enter URL", value="https://flet.dev", width=page.width*0.8)
+    url_input = ft.TextField(
+        label="Enter URL", value="https://flet.dev", width=page.width * 0.8
+    )
     url_launcher_status = ft.Text("URL Launcher status will appear here.")
-    launcher_control = UrlLauncherControl() # Create an instance
+    launcher_control = UrlLauncherControl()  # Create an instance
 
     # --- Handlers for UrlLauncherControl ---
     def do_launch_url(e):
@@ -77,8 +96,8 @@ def main(page: ft.Page):
         url_launcher_status.update()
 
     def refresh_launcher_status(e):
-         url_launcher_status.value = launcher_control.last_result or "No result yet."
-         url_launcher_status.update()
+        url_launcher_status.value = launcher_control.last_result or "No result yet."
+        url_launcher_status.update()
 
     # --- Handlers for Robust Error Handling Example ---
     def test_dart_success(e):
@@ -104,8 +123,10 @@ def main(page: ft.Page):
     # Assign the handler to the package instance
     package.on_shared_value_changed = handle_shared_value_update_from_control
 
-    def refresh_shared_value_display(e=None): # Allow calling without event
-        shared_value_display_text.value = f"Shared Value (polled): {package.shared_value}"
+    def refresh_shared_value_display(e=None):  # Allow calling without event
+        shared_value_display_text.value = (
+            f"Shared Value (polled): {package.shared_value}"
+        )
         shared_value_display_text.update()
         # page.update()
 
@@ -113,7 +134,70 @@ def main(page: ft.Page):
         package.increment_shared_value_from_python()
         # The shared_value attribute change in Python should trigger an update in Dart.
         # We also need to update our Python display.
-        refresh_shared_value_display() # Update the text display
+        refresh_shared_value_display()  # Update the text display
+
+    # Handler for async results (from example 1)
+    def handle_async_result(data):
+        """
+        Handles the result from the asynchronous Dart operation.
+        """
+        print(f"Async result received in Python: {data}")
+        # You can update the Flet UI here if needed, for example:
+        # page.add(ft.Text(f"Async result: {data}"))
+        # page.update()
+
+    # --- Handlers for Task with Progress (Example 4) ---
+    task_progress_text = ft.Text("Task progress will appear here.")
+    task_status_text = ft.Text("Task status: Idle")
+
+    def handle_task_progress(event_data):
+        """Handles progress updates from the Dart task."""
+        try:
+            task_id_short = event_data.get("task_id", "Unknown")[:8]
+            current_step = event_data.get("current_step", "?")
+            total_steps = event_data.get("total_steps", "?")
+            task_progress_text.value = (
+                f"Progress: Task {task_id_short} - Step {current_step}/{total_steps}"
+            )
+            task_progress_text.update()  # Use individual control update if page update is too broad
+            # page.update() # Or update the whole page
+        except Exception as ex:
+            task_progress_text.value = f"Error in progress handler: {ex}"
+            task_progress_text.update()
+
+    def handle_task_completion(event_data):
+        """Handles the completion event from the Dart task."""
+        try:
+            task_id_short = event_data.get("task_id", "Unknown")[:8]
+            message = event_data.get("message", "No message.")
+            task_status_text.value = f"Status: Task {task_id_short} - {message}"
+            task_progress_text.value = ""  # Clear progress text
+            task_status_text.update()
+            task_progress_text.update()
+            # page.update() # Or update the whole page
+        except Exception as ex:
+            task_status_text.value = f"Error in completion handler: {ex}"
+            task_status_text.update()
+
+    def start_the_task(e):
+        """Initiates the task with progress updates via the FletPackageGuide instance."""
+        task_status_text.value = "Task status: Initiating..."
+        task_progress_text.value = "Waiting for first progress..."
+        # It's good practice to update the UI immediately after user action
+        task_status_text.update()
+        task_progress_text.update()
+        # page.update()
+
+        package.start_task_with_progress_updates(
+            total_steps=5,  # Example: a task with 5 steps
+            progress_handler=handle_task_progress,
+            completion_handler=handle_task_completion,
+        )
+
+    # Button to start the task (defined globally to be added to page layout)
+    start_progress_task_button = ft.Button(
+        "Start Task with Progress", on_click=start_the_task
+    )
 
     page.add(
         ft.Container(
@@ -151,8 +235,8 @@ def main(page: ft.Page):
                 )
             ),
         ),
-        periodic_event_text, # Add the text control to the page
-        ft.Divider(), # Visual separator
+        periodic_event_text,  # Add the text control to the page
+        ft.Divider(),  # Visual separator
         ft.Text("Task with Progress Example:"),
         task_progress_text,
         task_status_text,
@@ -166,79 +250,27 @@ def main(page: ft.Page):
         ft.Divider(),
         ft.Text("Bi-directional Shared Value Example:"),
         shared_value_display_text,
-        ft.ElevatedButton("Increment from Python & Refresh Display", on_click=increment_from_python_button_click),
-        ft.ElevatedButton("Refresh Display from Python Attribute", on_click=refresh_shared_value_display),
-        ft.Text("Note: The Dart side of the control (purple box area) has its own 'Increment from Dart' button."),
+        ft.ElevatedButton(
+            "Increment from Python & Refresh Display",
+            on_click=increment_from_python_button_click,
+        ),
+        ft.ElevatedButton(
+            "Refresh Display from Python Attribute",
+            on_click=refresh_shared_value_display,
+        ),
+        ft.Text(
+            "Note: The Dart side of the control (purple box area) has its own 'Increment from Dart' button."
+        ),
         ft.Divider(),
         ft.Text("URL Launcher Example:"),
-        launcher_control, # Add the control itself to the page (displays Dart UI)
+        launcher_control,  # Add the control itself to the page (displays Dart UI)
         url_input,
         ft.ElevatedButton("Launch URL", on_click=do_launch_url),
         url_launcher_status,
-        ft.ElevatedButton("Refresh Last Launch Result", on_click=refresh_launcher_status),
+        ft.ElevatedButton(
+            "Refresh Last Launch Result", on_click=refresh_launcher_status
+        ),
     )
-
-
-# Handler for async results (from example 1)
-def handle_async_result(data):
-    """
-    Handles the result from the asynchronous Dart operation.
-    """
-    print(f"Async result received in Python: {data}")
-    # You can update the Flet UI here if needed, for example:
-    # page.add(ft.Text(f"Async result: {data}"))
-    # page.update()
-
-
-# --- Handlers for Task with Progress (Example 4) ---
-task_progress_text = ft.Text("Task progress will appear here.")
-task_status_text = ft.Text("Task status: Idle")
-
-def handle_task_progress(event_data):
-    """Handles progress updates from the Dart task."""
-    try:
-        task_id_short = event_data.get('task_id', 'Unknown')[:8]
-        current_step = event_data.get('current_step', '?')
-        total_steps = event_data.get('total_steps', '?')
-        task_progress_text.value = f"Progress: Task {task_id_short} - Step {current_step}/{total_steps}"
-        task_progress_text.update() # Use individual control update if page update is too broad
-        # page.update() # Or update the whole page
-    except Exception as ex:
-        task_progress_text.value = f"Error in progress handler: {ex}"
-        task_progress_text.update()
-
-
-def handle_task_completion(event_data):
-    """Handles the completion event from the Dart task."""
-    try:
-        task_id_short = event_data.get('task_id', 'Unknown')[:8]
-        message = event_data.get('message', 'No message.')
-        task_status_text.value = f"Status: Task {task_id_short} - {message}"
-        task_progress_text.value = ""  # Clear progress text
-        task_status_text.update()
-        task_progress_text.update()
-        # page.update() # Or update the whole page
-    except Exception as ex:
-        task_status_text.value = f"Error in completion handler: {ex}"
-        task_status_text.update()
-
-def start_the_task(e):
-    """Initiates the task with progress updates via the FletPackageGuide instance."""
-    task_status_text.value = "Task status: Initiating..."
-    task_progress_text.value = "Waiting for first progress..."
-    # It's good practice to update the UI immediately after user action
-    task_status_text.update()
-    task_progress_text.update()
-    # page.update()
-
-    package.start_task_with_progress_updates(
-        total_steps=5,  # Example: a task with 5 steps
-        progress_handler=handle_task_progress,
-        completion_handler=handle_task_completion
-    )
-
-# Button to start the task (defined globally to be added to page layout)
-start_progress_task_button = ft.Button("Start Task with Progress", on_click=start_the_task)
 
 
 ft.app(main)

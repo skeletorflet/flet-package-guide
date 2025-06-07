@@ -13,6 +13,15 @@ CreateControlFactory createControl = (CreateControlArgs args) {
         parentAdaptive: args.parentAdaptive,
         backend: args.backend,
       );
+    case "url_launcher_control":
+      return FletPackageGuideControl(
+        parent: args.parent,
+        control: args.control,
+        children: args.children,
+        parentDisabled: args.parentDisabled,
+        parentAdaptive: args.parentAdaptive,
+        backend: args.backend,
+      );
     default:
       return null;
   }

@@ -12,7 +12,7 @@ dependencies:
   flet: 0.28.3 # Or whatever version is appropriate/latest compatible
   flutter:
     sdk: flutter
-  url_launcher: ^6.0.0 # Added url_launcher
+  url_launcher: ^6.3.1 # Added url_launcher
 
 dev_dependencies:
   flutter_test:

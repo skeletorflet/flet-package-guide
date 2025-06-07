@@ -132,8 +132,8 @@ class _FletPackageGuideControlState extends State<FletPackageGuideControl> {
       case "potentially_failing_task":
         // args from Python are Map<String, String>
         final bool shouldFail = (args["should_fail"] ?? "false") == "true";
-        return await potentially_failing_task(shouldFail);
-        // Flet will JSON encode the returned Map<String, dynamic>
+        final result = await potentially_failing_task(shouldFail);
+        return json.encode(result); // Convertir Map a String JSON
       default:
         return null;
     }
@@ -199,7 +199,8 @@ class _FletPackageGuideControlState extends State<FletPackageGuideControl> {
   }
 
   Future<Map<String, dynamic>> potentially_failing_task(bool shouldFail) async {
-    debugPrint("Dart potentially_failing_task called with shouldFail: $shouldFail");
+    debugPrint(
+        "Dart potentially_failing_task called with shouldFail: $shouldFail");
     await Future.delayed(const Duration(seconds: 1)); // Simulate some work
     if (shouldFail) {
       debugPrint("Dart task is simulating a failure.");
@@ -211,12 +212,15 @@ class _FletPackageGuideControlState extends State<FletPackageGuideControl> {
   }
 
   void _incrementSharedValueFromDart() {
-    String currentValue = widget.control.attrString("shared_value", "Initial Dart Value")!;
+    String currentValue =
+        widget.control.attrString("shared_value", "Initial Dart Value")!;
     int newValueNum;
     try {
       // Attempt to parse "Python Value: X" or "Dart Value: X"
       List<String> parts = currentValue.split(": ");
-      newValueNum = (parts.isNotEmpty && int.tryParse(parts.last) != null) ? int.parse(parts.last) + 1 : 1;
+      newValueNum = (parts.isNotEmpty && int.tryParse(parts.last) != null)
+          ? int.parse(parts.last) + 1
+          : 1;
     } catch (e) {
       newValueNum = 1; // Start fresh if parsing fails
     }
@@ -224,10 +228,10 @@ class _FletPackageGuideControlState extends State<FletPackageGuideControl> {
 
     debugPrint("Dart incrementing shared_value to: $newSharedValue");
     widget.backend.triggerControlEvent(
-      widget.control.id,
-      "shared_value_changed_from_dart", // Event name Python listens to
-      newSharedValue // Data for the event
-    );
+        widget.control.id,
+        "shared_value_changed_from_dart", // Event name Python listens to
+        newSharedValue // Data for the event
+        );
   }
 
   void handleSomething(dynamic value) {
@@ -284,7 +288,8 @@ class _FletPackageGuideControlState extends State<FletPackageGuideControl> {
               ),
             )),
         const SizedBox(height: 10), // Spacer
-        Text("Shared Value: ${widget.control.attrString('shared_value', 'N/A')}"),
+        Text(
+            "Shared Value: ${widget.control.attrString('shared_value', 'N/A')}"),
         ElevatedButton(
           onPressed: _incrementSharedValueFromDart,
           child: const Text("Increment from Dart"),
