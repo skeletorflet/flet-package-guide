@@ -54,6 +54,69 @@ def main(page: ft.Page):
     # package.enable_periodic_events = True
     # package.update() # If enable_periodic_events was set explicitly after instantiation and requires an update.
 
+    # Handler for async results (from example 1)
+    def handle_async_result(data):
+        """
+        Handles the result from the asynchronous Dart operation.
+        """
+        print(f"Async result received in Python: {data}")
+        # You can update the Flet UI here if needed, for example:
+        # page.add(ft.Text(f"Async result: {data}"))
+        # page.update()
+
+    # --- Handlers for Task with Progress (Example 4) ---
+    task_progress_text = ft.Text("Task progress will appear here.")
+    task_status_text = ft.Text("Task status: Idle")
+
+    def handle_task_progress(event_data):
+        """Handles progress updates from the Dart task."""
+        try:
+            task_id_short = event_data.get("task_id", "Unknown")[:8]
+            current_step = event_data.get("current_step", "?")
+            total_steps = event_data.get("total_steps", "?")
+            task_progress_text.value = (
+                f"Progress: Task {task_id_short} - Step {current_step}/{total_steps}"
+            )
+            task_progress_text.update()  # Use individual control update if page update is too broad
+            # page.update() # Or update the whole page
+        except Exception as ex:
+            task_progress_text.value = f"Error in progress handler: {ex}"
+            task_progress_text.update()
+
+    def handle_task_completion(event_data):
+        """Handles the completion event from the Dart task."""
+        try:
+            task_id_short = event_data.get("task_id", "Unknown")[:8]
+            message = event_data.get("message", "No message.")
+            task_status_text.value = f"Status: Task {task_id_short} - {message}"
+            task_progress_text.value = ""  # Clear progress text
+            task_status_text.update()
+            task_progress_text.update()
+            # page.update() # Or update the whole page
+        except Exception as ex:
+            task_status_text.value = f"Error in completion handler: {ex}"
+            task_status_text.update()
+
+    def start_the_task(e):
+        """Initiates the task with progress updates via the FletPackageGuide instance."""
+        task_status_text.value = "Task status: Initiating..."
+        task_progress_text.value = "Waiting for first progress..."
+        # It's good practice to update the UI immediately after user action
+        task_status_text.update()
+        task_progress_text.update()
+        # page.update()
+
+        package.start_task_with_progress_updates(
+            total_steps=5,  # Example: a task with 5 steps
+            progress_handler=handle_task_progress,
+            completion_handler=handle_task_completion,
+        )
+
+    # Button to start the task (defined globally to be added to page layout)
+    start_progress_task_button = ft.Button(
+        "Start Task with Progress", on_click=start_the_task
+    )
+
     page.add(
         ft.Container(
             alignment=ft.alignment.center,
@@ -90,75 +153,13 @@ def main(page: ft.Page):
                 )
             ),
         ),
-        periodic_event_text, # Add the text control to the page
-        ft.Divider(), # Visual separator
+        periodic_event_text,  # Add the text control to the page
+        ft.Divider(),  # Visual separator
         ft.Text("Task with Progress Example:"),
         task_progress_text,
         task_status_text,
         start_progress_task_button,
     )
-
-
-# Handler for async results (from example 1)
-def handle_async_result(data):
-    """
-    Handles the result from the asynchronous Dart operation.
-    """
-    print(f"Async result received in Python: {data}")
-    # You can update the Flet UI here if needed, for example:
-    # page.add(ft.Text(f"Async result: {data}"))
-    # page.update()
-
-
-# --- Handlers for Task with Progress (Example 4) ---
-task_progress_text = ft.Text("Task progress will appear here.")
-task_status_text = ft.Text("Task status: Idle")
-
-def handle_task_progress(event_data):
-    """Handles progress updates from the Dart task."""
-    try:
-        task_id_short = event_data.get('task_id', 'Unknown')[:8]
-        current_step = event_data.get('current_step', '?')
-        total_steps = event_data.get('total_steps', '?')
-        task_progress_text.value = f"Progress: Task {task_id_short} - Step {current_step}/{total_steps}"
-        task_progress_text.update() # Use individual control update if page update is too broad
-        # page.update() # Or update the whole page
-    except Exception as ex:
-        task_progress_text.value = f"Error in progress handler: {ex}"
-        task_progress_text.update()
-
-
-def handle_task_completion(event_data):
-    """Handles the completion event from the Dart task."""
-    try:
-        task_id_short = event_data.get('task_id', 'Unknown')[:8]
-        message = event_data.get('message', 'No message.')
-        task_status_text.value = f"Status: Task {task_id_short} - {message}"
-        task_progress_text.value = ""  # Clear progress text
-        task_status_text.update()
-        task_progress_text.update()
-        # page.update() # Or update the whole page
-    except Exception as ex:
-        task_status_text.value = f"Error in completion handler: {ex}"
-        task_status_text.update()
-
-def start_the_task(e):
-    """Initiates the task with progress updates via the FletPackageGuide instance."""
-    task_status_text.value = "Task status: Initiating..."
-    task_progress_text.value = "Waiting for first progress..."
-    # It's good practice to update the UI immediately after user action
-    task_status_text.update()
-    task_progress_text.update()
-    # page.update()
-
-    package.start_task_with_progress_updates(
-        total_steps=5,  # Example: a task with 5 steps
-        progress_handler=handle_task_progress,
-        completion_handler=handle_task_completion
-    )
-
-# Button to start the task (defined globally to be added to page layout)
-start_progress_task_button = ft.Button("Start Task with Progress", on_click=start_the_task)
 
 
 ft.app(main)

@@ -254,10 +254,9 @@ class FletPackageGuide(ConstrainedControl):
                 "long_running_task",
                 {
                     "data": data_to_send,
-                    "duration_ms": dart_task_duration_ms  # Dart will use this to simulate work
+                    "duration_ms": dart_task_duration_ms,  # Dart will use this to simulate work
                 },
                 wait_for_result=True,
-                timeout=python_timeout_sec  # Python-side timeout for the call
             )
 
             if result is None:
