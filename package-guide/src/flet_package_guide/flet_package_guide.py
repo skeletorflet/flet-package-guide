@@ -74,6 +74,7 @@ class FletPackageGuide(ConstrainedControl):
         self._completion_handlers = {} # Corrected initialization
         self._add_event_handler("async_callback", self._on_async_callback)
         self._add_event_handler("task_update", self._on_task_update)
+        self._add_event_handler("shared_value_changed_from_dart", self._on_shared_value_changed_from_dart)
 
     # controls name reference
     # OK
@@ -383,3 +384,68 @@ class FletPackageGuide(ConstrainedControl):
         else:
             # print(f"Unknown status in task_update event: {status} for task {task_id}")
             pass
+
+    def call_dart_that_might_fail(self, should_fail: bool):
+        """
+        Calls a Dart method that might succeed or return an error.
+        Demonstrates handling errors returned by Dart.
+        """
+        try:
+            # Convert boolean to string for Dart method call, as args are Map<String, String>
+            result = self.invoke_method(
+                "potentially_failing_task",
+                {"should_fail": str(should_fail).lower()},
+                wait_for_result=True,
+                timeout=5.0 # Example timeout
+            )
+            # Dart is expected to return a dictionary (JSON serialized by Flet)
+            if isinstance(result, dict):
+                if result.get("success"):
+                    return f"Dart task succeeded: {result.get('data')}"
+                else:
+                    return f"Dart task reported failure: {result.get('error', 'No error message provided.')}"
+            elif result is None:
+                return "Dart task returned None. This might indicate an issue or an unexpected successful non-response from a method not designed to return structured data."
+            else:
+                # Fallback for simple string responses, though structured dict is preferred for this pattern
+                return f"Dart task returned unexpected type or simple response: {result}"
+
+        except concurrent.futures.TimeoutError:
+            return "Timeout: Dart method 'potentially_failing_task' did not respond in time."
+        except Exception as e:
+            return f"Error calling Dart 'potentially_failing_task': {e}"
+
+    # shared_value
+    @property
+    def shared_value(self) -> Optional[str]:
+        return self._get_attr("shared_value", def_value="Initial Python Value")
+
+    @shared_value.setter
+    def shared_value(self, value: Optional[str]):
+        self._set_attr("shared_value", value)
+
+    def increment_shared_value_from_python(self):
+        current_val_str = self.shared_value
+        try:
+            parts = current_val_str.split(": ")
+            num_part = int(parts[-1]) if len(parts) > 0 and parts[-1].isdigit() else 0
+            num_part += 1
+            self.shared_value = f"Python Value: {num_part}"
+        except ValueError:
+            self.shared_value = "Python Value: 1"
+
+    def _on_shared_value_changed_from_dart(self, e):
+        new_value_from_dart = e.data
+        self.shared_value = new_value_from_dart # Update Python's source of truth for the attribute
+        # If there's a specific Python-side public event handler for this, call it
+        if self.on_shared_value_changed:
+             self.on_shared_value_changed(ft.ControlEvent(target=self.uid, name="shared_value_changed", data=new_value_from_dart, control=self, page=self.page))
+
+    @property
+    def on_shared_value_changed(self) -> OptionalControlEventCallable:
+        return self._get_event_handler("on_shared_value_changed_by_control")
+
+    @on_shared_value_changed.setter
+    def on_shared_value_changed(self, handler: OptionalControlEventCallable):
+        self._add_event_handler("on_shared_value_changed_by_control", handler)
+        # self._set_attr("has_on_shared_value_changed_handler", True if handler else False) # Inform Dart if needed

@@ -9,9 +9,10 @@ environment:
   flutter: ">=1.17.0"
 
 dependencies:
-  flet: 0.28.3
+  flet: 0.28.3 # Or whatever version is appropriate/latest compatible
   flutter:
     sdk: flutter
+  url_launcher: ^6.0.0 # Added url_launcher
 
 dev_dependencies:
   flutter_test:

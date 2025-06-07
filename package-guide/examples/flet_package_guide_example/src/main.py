@@ -1,5 +1,5 @@
 import flet as ft
-from flet_package_guide import FletPackageGuide
+from flet_package_guide import FletPackageGuide, UrlLauncherControl # Import UrlLauncherControl
 import json # Added import for json
 
 
@@ -54,6 +54,67 @@ def main(page: ft.Page):
     # package.enable_periodic_events = True
     # package.update() # If enable_periodic_events was set explicitly after instantiation and requires an update.
 
+    # --- Text controls for Robust Error Handling Example ---
+    error_handling_success_text = ft.Text("Result of successful Dart call will appear here.")
+    error_handling_failure_text = ft.Text("Result of failing Dart call will appear here.")
+
+    # --- Text control for Bi-directional Shared Value Example ---
+    shared_value_display_text = ft.Text(f"Shared Value: {package.shared_value}") # Initialize with current value
+
+    # --- UrlLauncherControl Setup ---
+    url_input = ft.TextField(label="Enter URL", value="https://flet.dev", width=page.width*0.8)
+    url_launcher_status = ft.Text("URL Launcher status will appear here.")
+    launcher_control = UrlLauncherControl() # Create an instance
+
+    # --- Handlers for UrlLauncherControl ---
+    def do_launch_url(e):
+        if not url_input.value:
+            url_launcher_status.value = "Please enter a URL."
+            url_launcher_status.update()
+            return
+        launcher_control.launch_url(url_input.value)
+        url_launcher_status.value = launcher_control.last_result or "No result yet."
+        url_launcher_status.update()
+
+    def refresh_launcher_status(e):
+         url_launcher_status.value = launcher_control.last_result or "No result yet."
+         url_launcher_status.update()
+
+    # --- Handlers for Robust Error Handling Example ---
+    def test_dart_success(e):
+        result = package.call_dart_that_might_fail(should_fail=False)
+        error_handling_success_text.value = str(result)
+        error_handling_success_text.update()
+        # page.update()
+
+    def test_dart_failure(e):
+        result = package.call_dart_that_might_fail(should_fail=True)
+        error_handling_failure_text.value = str(result)
+        error_handling_failure_text.update()
+        # page.update()
+
+    # --- Handlers for Bi-directional Shared Value Example ---
+    def handle_shared_value_update_from_control(e):
+        # This handler is called when Python's _on_shared_value_changed_from_dart
+        # calls the public on_shared_value_changed event.
+        shared_value_display_text.value = f"Shared Value (event): {e.data}"
+        shared_value_display_text.update()
+        # page.update()
+
+    # Assign the handler to the package instance
+    package.on_shared_value_changed = handle_shared_value_update_from_control
+
+    def refresh_shared_value_display(e=None): # Allow calling without event
+        shared_value_display_text.value = f"Shared Value (polled): {package.shared_value}"
+        shared_value_display_text.update()
+        # page.update()
+
+    def increment_from_python_button_click(e):
+        package.increment_shared_value_from_python()
+        # The shared_value attribute change in Python should trigger an update in Dart.
+        # We also need to update our Python display.
+        refresh_shared_value_display() # Update the text display
+
     page.add(
         ft.Container(
             alignment=ft.alignment.center,
@@ -96,6 +157,25 @@ def main(page: ft.Page):
         task_progress_text,
         task_status_text,
         start_progress_task_button,
+        ft.Divider(),
+        ft.Text("Robust Error Handling Example:"),
+        ft.ElevatedButton("Call Dart (Expect Success)", on_click=test_dart_success),
+        error_handling_success_text,
+        ft.ElevatedButton("Call Dart (Expect Failure)", on_click=test_dart_failure),
+        error_handling_failure_text,
+        ft.Divider(),
+        ft.Text("Bi-directional Shared Value Example:"),
+        shared_value_display_text,
+        ft.ElevatedButton("Increment from Python & Refresh Display", on_click=increment_from_python_button_click),
+        ft.ElevatedButton("Refresh Display from Python Attribute", on_click=refresh_shared_value_display),
+        ft.Text("Note: The Dart side of the control (purple box area) has its own 'Increment from Dart' button."),
+        ft.Divider(),
+        ft.Text("URL Launcher Example:"),
+        launcher_control, # Add the control itself to the page (displays Dart UI)
+        url_input,
+        ft.ElevatedButton("Launch URL", on_click=do_launch_url),
+        url_launcher_status,
+        ft.ElevatedButton("Refresh Last Launch Result", on_click=refresh_launcher_status),
     )
 
 
