@@ -38,7 +38,7 @@ class UrlLauncherControl(Control):
             # invoke_method returns the result from Dart, which should be a boolean string "true" or "false"
             # or an error string.
             result_str = self.invoke_method(
-                "launch_url", {"url": url}, wait_for_result=True, timeout=10.0
+                "launch_url", {"url": url}, wait_for_result=True
             )
 
             if isinstance(result_str, str):

@@ -9,7 +9,7 @@ import json  # Added import for json
 def main(page: ft.Page):
     page.vertical_alignment = ft.MainAxisAlignment.CENTER
     page.horizontal_alignment = ft.CrossAxisAlignment.CENTER
-
+    page.scroll = ft.ScrollMode.AUTO
     def get_random():
         return FletPackageGuide(
             colors=[ft.Colors.RED, ft.Colors.BLUE, ft.Colors.PRIMARY],

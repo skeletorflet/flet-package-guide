@@ -10,7 +10,9 @@ from flet.core.types import (
     ColorValue,
     OptionalControlEventCallable,
     WebRenderer,
+    ControlEvent,
 )
+
 import uuid
 import concurrent.futures
 
@@ -255,10 +257,10 @@ class FletPackageGuide(ConstrainedControl):
                 "long_running_task",
                 {
                     "data": data_to_send,
-                    "duration_ms": dart_task_duration_ms  # Dart will use this to simulate work
+                    "duration_ms": dart_task_duration_ms,  # Dart will use this to simulate work
                 },
                 wait_for_result=True,
-                timeout=python_timeout_sec  # Python-side timeout for the call
+                # Python-side timeout for the call
             )
 
             if result is None:
@@ -439,7 +441,15 @@ class FletPackageGuide(ConstrainedControl):
         self.shared_value = new_value_from_dart # Update Python's source of truth for the attribute
         # If there's a specific Python-side public event handler for this, call it
         if self.on_shared_value_changed:
-             self.on_shared_value_changed(ft.ControlEvent(target=self.uid, name="shared_value_changed", data=new_value_from_dart, control=self, page=self.page))
+            self.on_shared_value_changed(
+                ControlEvent(
+                    target=self.uid,
+                    name="shared_value_changed",
+                    data=new_value_from_dart,
+                    control=self,
+                    page=self.page,
+                )
+            )
 
     @property
     def on_shared_value_changed(self) -> OptionalControlEventCallable:
