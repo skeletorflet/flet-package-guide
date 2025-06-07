@@ -1,3 +1,4 @@
+import 'dart:async'; // Import for Timer
 import 'package:flet/flet.dart';
 import 'package:flutter/material.dart';
 import 'dart:convert';
@@ -27,11 +28,14 @@ class FletPackageGuideControl extends StatefulWidget {
 
 class _FletPackageGuideControlState extends State<FletPackageGuideControl> {
   Map<String, dynamic>? complexData;
+  Timer? _periodicTimer;
+  int _periodicCounter = 0;
 
   @override
   void initState() {
     super.initState();
     widget.backend.subscribeMethods(widget.control.id, _onMethodCall);
+    // Initialize complexData as before
     final String? complexDataJson =
         widget.control.attrString("complex_data", null);
     if (complexDataJson != null) {
@@ -41,13 +45,46 @@ class _FletPackageGuideControlState extends State<FletPackageGuideControl> {
         complexData = {"error": "Invalid JSON"};
       }
     }
+    // Start periodic timer if enabled
+    _updatePeriodicTimer();
   }
 
   @override
   void dispose() {
     widget.backend.unsubscribeMethods(widget.control.id);
+    _periodicTimer?.cancel(); // Cancel the timer on dispose
     super.dispose();
   }
+
+  void _updatePeriodicTimer() {
+    _periodicTimer?.cancel(); // Cancel any existing timer
+    if (widget.control.attrBool("enablePeriodicEvents", false) ?? false) {
+      debugPrint("Starting Dart periodic timer.");
+      _periodicTimer =
+          Timer.periodic(const Duration(seconds: 1), (Timer timer) {
+        _periodicCounter++;
+        // debugPrint("Dart periodic event: Counter = $_periodicCounter");
+        widget.backend.triggerControlEvent(
+          widget.control.id,
+          "dart_periodic_event", // Event name for Python handler
+          json.encode({"counter": _periodicCounter}),
+        );
+      });
+    } else {
+      debugPrint("Dart periodic timer is disabled or not explicitly enabled.");
+    }
+  }
+
+  // This method could be called if we were to implement live updates of the `enablePeriodicEvents` attribute
+  // For now, it's called from initState.
+  // @override
+  // void didUpdateWidget(covariant FletPackageGuideControl oldWidget) {
+  //   super.didUpdateWidget(oldWidget);
+  //   if (widget.control.attrBool("enablePeriodicEvents") !=
+  //       oldWidget.control.attrBool("enablePeriodicEvents")) {
+  //     _updatePeriodicTimer();
+  //   }
+  // }
 
   Future<String?> _onMethodCall(
       String methodName, Map<String, String> args) async {
@@ -56,9 +93,104 @@ class _FletPackageGuideControlState extends State<FletPackageGuideControl> {
         return "you call play" + args["some"]!;
       case "stop":
         return "you call stop" + args["love"]!;
+      case "start_async_task":
+        // Extract message and callbackId from args
+        final String message = args["message"] ?? "No message";
+        final String callbackId = args["callback_id"] ?? "";
+
+        if (callbackId.isEmpty) {
+          debugPrint("Error: callback_id is missing in start_async_task");
+          return "Error: callback_id is missing";
+        }
+        // Call the async task method
+        start_async_task(message, callbackId);
+        return null; // Indicate that the method was handled
+      case "long_running_task":
+        final String data = args["data"] ?? "No data";
+        // Default to 0ms if not provided or if parsing fails
+        final int durationMs = int.tryParse(args["duration_ms"] ?? "0") ?? 0;
+        return long_running_task(data, durationMs);
+      case "start_task_with_progress":
+        final String taskId = args["task_id"] ?? "";
+        final int totalSteps = int.tryParse(args["total_steps"] ?? "0") ?? 0;
+        if (taskId.isEmpty || totalSteps <= 0) {
+          debugPrint(
+              "Error: task_id is missing or total_steps is invalid in start_task_with_progress");
+          // Optionally send an error event back
+          widget.backend.triggerControlEvent(
+              widget.control.id,
+              "task_update",
+              json.encode({
+                "task_id": taskId,
+                "status": "error",
+                "message": "Invalid parameters for task creation."
+              }));
+          return null;
+        }
+        start_task_with_progress(taskId, totalSteps);
+        return null; // Indicate method was handled, no direct string result
       default:
         return null;
     }
+  }
+
+  void start_async_task(String message, String callbackId) {
+    debugPrint(
+        "Dart start_async_task called with message: '$message', callbackId: '$callbackId'");
+    // Simulate an async operation
+    Future.delayed(const Duration(seconds: 2), () {
+      String result = "Async task for '$message' completed";
+      debugPrint("Dart async task completed. Result: '$result'");
+      // Send an event back to Python
+      widget.backend.triggerControlEvent(
+        widget.control.id,
+        "async_callback", // Event name must match Python's event handler
+        json.encode({"callback_id": callbackId, "data": result}),
+      );
+    });
+  }
+
+  Future<String?> long_running_task(String data, int durationMs) async {
+    debugPrint(
+        "Dart long_running_task called with data: '$data', duration_ms: $durationMs");
+    // Simulate work using Future.delayed
+    await Future.delayed(Duration(milliseconds: durationMs));
+    String result = "Task completed for: '$data' after $durationMs ms";
+    debugPrint("Dart long_running_task completed. Result: '$result'");
+    return result;
+  }
+
+  Future<void> start_task_with_progress(String taskId, int totalSteps) async {
+    debugPrint(
+        "Dart start_task_with_progress called for task ID: $taskId with $totalSteps steps.");
+
+    for (int i = 1; i <= totalSteps; i++) {
+      await Future.delayed(
+          const Duration(seconds: 1)); // Simulate one second of work per step
+      // Send progress update
+      // debugPrint("Sending progress for task $taskId, step $i/$totalSteps");
+      widget.backend.triggerControlEvent(
+          widget.control.id,
+          "task_update", // Event name for Python handler
+          json.encode({
+            "task_id": taskId,
+            "status": "progress",
+            "current_step": i,
+            "total_steps": totalSteps
+          }));
+    }
+
+    // Send completion event
+    // debugPrint("Sending completion for task $taskId");
+    widget.backend.triggerControlEvent(
+        widget.control.id,
+        "task_update", // Event name for Python handler
+        json.encode({
+          "task_id": taskId,
+          "status": "complete",
+          "message":
+              "Task $taskId finished successfully after $totalSteps steps."
+        }));
   }
 
   void handleSomething(dynamic value) {

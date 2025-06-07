@@ -48,3 +48,109 @@ flet build macos -v
 ## Documentation
 
 [Link to documentation](https://MyGithubAccount.github.io/flet-package-guide/)
+
+## Advanced Communication Examples
+
+This section details several patterns for more complex interactions between Python and Dart within your Flet custom control. For full implementation details and context, please refer to:
+- Example usage: `package-guide/examples/flet_package_guide_example/src/main.py`
+- Python control logic: `package-guide/src/flet_package_guide/flet_package_guide.py`
+- Dart control logic: `package-guide/src/flutter/flet_package_guide/lib/src/flet_package_guide.dart`
+
+### 1. Asynchronous Operation with Callback
+
+- **Purpose:** Demonstrates how Python can call a Dart function and receive a response asynchronously via a callback, without blocking the main Python thread.
+- **Mechanism:**
+    - Python (`FletPackageGuide`): `async_operation_with_callback(message, python_callback)` method initiates the call, passing a unique ID and the message. It stores the callback.
+    - Dart (`_FletPackageGuideControlState`): `start_async_task(message, callbackId)` method (invoked by Python) simulates work and then triggers a Flet event (`"async_callback"`).
+    - Python: An event handler (`_on_async_callback`) receives this event, looks up the original callback by ID, and executes it with the data from Dart.
+- **Example Snippet (from `main.py`):**
+  ```python
+  def my_async_handler(data_from_dart):
+      print(f"Async result from Dart: {data_from_dart}")
+
+  # In your Flet app setup:
+  # my_package = FletPackageGuide(...) # Assuming 'my_package' is your control instance
+  # my_package.async_operation_with_callback("Hello from Python!", my_async_handler)
+  ```
+
+### 2. Calling Dart with Timeout Handling
+
+- **Purpose:** Shows how Python can call a Dart method and handle potential timeouts if Dart doesn't respond within a specified duration.
+- **Mechanism:**
+    - Python (`FletPackageGuide`): `call_dart_with_timeout(data_to_send, python_timeout_sec, dart_task_duration_ms)` method uses Flet's `invoke_method(..., timeout=python_timeout_sec)`.
+    - It passes `dart_task_duration_ms` to Dart to control the simulated work time.
+    - If `invoke_method` raises `concurrent.futures.TimeoutError`, it's caught, and a timeout message is returned. Otherwise, Dart's response is returned.
+    - Dart (`_FletPackageGuideControlState`): `long_running_task(data, duration_ms)` simulates work for `duration_ms`.
+- **Example Snippet (from `main.py`):**
+  ```python
+  # In your Flet app setup:
+  # my_package = FletPackageGuide(...)
+  # result = my_package.call_dart_with_timeout(
+  #     data_to_send="Process me",
+  #     python_timeout_sec=2.0,  # Python waits for 2s
+  #     dart_task_duration_ms=1000 # Dart task takes 1s (should succeed)
+  # )
+  # print(f"Dart call result: {result}")
+
+  # result_timeout = my_package.call_dart_with_timeout(
+  #     data_to_send="Process me slowly",
+  #     python_timeout_sec=1.0,  # Python waits for 1s
+  #     dart_task_duration_ms=2000 # Dart task takes 2s (should timeout)
+  # )
+  # print(f"Dart call result (timeout expected): {result_timeout}")
+  ```
+
+### 3. Dart-Initiated Periodic Events
+
+- **Purpose:** Illustrates how the Dart side of a control can autonomously send events to Python periodically (e.g., for live updates).
+- **Mechanism:**
+    - Python (`FletPackageGuide`): Has an `enable_periodic_events` boolean property and an `on_dart_periodic_event` event handler property. Setting the handler automatically tries to enable the events.
+    - Dart (`_FletPackageGuideControlState`): If `enablePeriodicEvents` attribute is true, a `Timer.periodic` is started in `initState`. This timer sends an event (`"dart_periodic_event"`) with a counter value to Python regularly. The timer is cancelled in `dispose`.
+- **Example Snippet (from `main.py`):**
+  ```python
+  # periodic_update_text = ft.Text("Waiting...") # Defined in your UI
+
+  # def handle_periodic_updates(e):
+  #     # Assuming 'page' is your ft.Page instance and 'json' is imported
+  #     data = json.loads(e.data)
+  #     periodic_update_text.value = f"Dart says: {data['counter']}"
+  #     page.update()
+
+  # In your Flet app setup:
+  # my_package = FletPackageGuide()
+  # my_package.on_dart_periodic_event = handle_periodic_updates
+  # page.add(periodic_update_text, my_package) # Add relevant controls to page
+  ```
+
+### 4. Task with Progress Updates
+
+- **Purpose:** Demonstrates managing a longer task initiated by Python on the Dart side, where Dart provides multiple progress updates before completion.
+- **Mechanism:**
+    - Python (`FletPackageGuide`): `start_task_with_progress_updates(total_steps, progress_handler, completion_handler)` method generates a unique task ID, stores handlers, and calls Dart.
+    - Dart (`_FletPackageGuideControlState`): `start_task_with_progress(taskId, totalSteps)` simulates a multi-step task. It sends `"task_update"` events with `status: "progress"` and current step details, and finally one with `status: "complete"` or `status: "error"`.
+    - Python: An event handler (`_on_task_update`) receives these, identifies the task by ID, and calls the appropriate registered Python handler (progress or completion). Handlers are cleaned up on completion/error.
+- **Example Snippet (from `main.py`):**
+  ```python
+  # progress_display = ft.Text("Progress...") # Defined in your UI
+  # status_display = ft.Text("Status: Idle")   # Defined in your UI
+
+  # def show_progress(data):
+  #     # Assuming 'page' is your ft.Page instance
+  #     progress_display.value = f"Step {data['current_step']}/{data['total_steps']}"
+  #     page.update()
+
+  # def show_completion(data):
+  #     # Assuming 'page' is your ft.Page instance
+  #     status_display.value = f"Task {data['task_id'][:8]}: {data['message']}"
+  #     progress_display.value = ""
+  #     page.update()
+
+  # In your Flet app setup:
+  # my_package = FletPackageGuide(...)
+  # To call from a button click or other action:
+  # my_package.start_task_with_progress_updates(
+  #     total_steps=10,
+  #     progress_handler=show_progress,
+  #     completion_handler=show_completion
+  # )
+  ```
