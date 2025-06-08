@@ -1,0 +1,7 @@
+site_name: FletConfetti
+
+theme:
+  name: "material"
+
+plugins:
+  - mkdocstrings

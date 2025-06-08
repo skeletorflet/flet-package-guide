@@ -1,0 +1,1 @@
+from flet_confetti.flet_confetti import FletConfetti
