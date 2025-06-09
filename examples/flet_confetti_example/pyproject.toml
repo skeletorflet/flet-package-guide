@@ -31,7 +31,7 @@ copyright = "Copyright (C) 2025 by MyCompany"
 path = "src"
 
 [tool.flet.dev_packages]
-flet-confetti = "..\.." # relative path
+flet-confetti = "..\\.." # relative path
 
 [tool.uv]
 dev-dependencies = [
@@ -39,8 +39,8 @@ dev-dependencies = [
 ]
 
 [tool.uv.sources]
-flet-confetti = { path = "..\..\", editable = true }
+flet-confetti = { path = "..\\..\\", editable = true }
 
 [tool.poetry.group.dev.dependencies]
 flet = {extras = ["all"], version = "0.28.3"}
-flet-confetti = {path = "..\..\", develop = true}
+flet-confetti = {path = "..\\..\\", develop = true}
