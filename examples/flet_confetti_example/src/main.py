@@ -32,10 +32,13 @@ def main(page: ft.Page):
     confetti_top = FletConfetti(
         blast_directionality=BlastDirectionality.DIRECTIONAL,
         blast_direction=math.pi / 2,  # Down
-        # theme=ConfettiTheme.NEON,  # Using theme - this should work now!
-        particle_shape=ParticleShape.STAR,
+        theme=ConfettiTheme.FOREST,  # Using theme - this should work now!
+        # STAR,
+        custom_particle_path="M10,1 L12,7 L19,7 L14,11 L16,18 L10,14 L4,18 L6,11 L1,7 L8,7 Z",
         duration_seconds=3,
         number_of_particles=15,
+        minimum_size=ft.Size(50, 50),
+        maximum_size=ft.Size(50, 50),
         max_blast_force=30,
         min_blast_force=15,
         gravity=0.3,
@@ -160,28 +163,7 @@ def main(page: ft.Page):
         ]
 
         # Randomize shape
-        shapes = [
-            ParticleShape.RECTANGLE,
-            ParticleShape.CIRCLE,
-            ParticleShape.SQUARE,
-            ParticleShape.TRIANGLE,
-            ParticleShape.DIAMOND,
-            ParticleShape.HEXAGON,
-            ParticleShape.PENTAGON,
-            ParticleShape.OCTAGON,
-            ParticleShape.STAR,
-            ParticleShape.STAR_4,
-            ParticleShape.STAR_6,
-            ParticleShape.STAR_8,
-            ParticleShape.HEART,
-            ParticleShape.FLOWER,
-            ParticleShape.LEAF,
-            ParticleShape.BUTTERFLY,
-            ParticleShape.CROSS,
-            ParticleShape.PLUS,
-            ParticleShape.ARROW,
-            ParticleShape.LIGHTNING,
-        ]
+        shapes = [shape for shape in ParticleShape if shape.value != "None"]
         confetti_center.particle_shape = random.choice(shapes)
 
         # Randomize other properties
@@ -196,6 +178,8 @@ def main(page: ft.Page):
         confetti_center.emission_frequency = random.uniform(0.01, 0.09)
         confetti_center.gravity = random.uniform(-0.6, 0.6)
         confetti_center.number_of_particles = random.randint(5, 20)
+        confetti_center.minimum_size = ft.Size(10, 10)
+        confetti_center.maximum_size = ft.Size(100, 100)
 
         # Update property display
         update_properties()

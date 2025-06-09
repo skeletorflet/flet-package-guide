@@ -4,7 +4,149 @@ import 'package:confetti/confetti.dart';
 import 'package:flet/flet.dart';
 import 'package:flutter/material.dart';
 import 'utils/shapes.dart';
-import 'utils/themes.dart';
+
+// SVG Path Parser for Custom Particle Shapes
+class SVGPathParser {
+  static final Map<String, Path> _pathCache = {};
+
+  static Path? parsePathString(String? pathString) {
+    if (pathString == null || pathString.isEmpty) return null;
+
+    // Check cache first for performance
+    if (_pathCache.containsKey(pathString)) {
+      return _pathCache[pathString]!;
+    }
+
+    try {
+      final path = _parseSVGPath(pathString);
+      _pathCache[pathString] = path;
+      return path;
+    } catch (e) {
+      debugPrint("Error parsing SVG path '$pathString': $e");
+      return null;
+    }
+  }
+
+  static Path _parseSVGPath(String pathString) {
+    final path = Path();
+    final commands = _tokenizePath(pathString);
+
+    double currentX = 0, currentY = 0;
+    double startX = 0, startY = 0;
+
+    for (int i = 0; i < commands.length; i++) {
+      final command = commands[i];
+
+      switch (command.toUpperCase()) {
+        case 'M': // Move to
+          if (i + 2 < commands.length) {
+            currentX = double.parse(commands[i + 1]);
+            currentY = double.parse(commands[i + 2]);
+            startX = currentX;
+            startY = currentY;
+            path.moveTo(currentX, currentY);
+            i += 2;
+          }
+          break;
+
+        case 'L': // Line to
+          if (i + 2 < commands.length) {
+            currentX = double.parse(commands[i + 1]);
+            currentY = double.parse(commands[i + 2]);
+            path.lineTo(currentX, currentY);
+            i += 2;
+          }
+          break;
+
+        case 'H': // Horizontal line
+          if (i + 1 < commands.length) {
+            currentX = double.parse(commands[i + 1]);
+            path.lineTo(currentX, currentY);
+            i += 1;
+          }
+          break;
+
+        case 'V': // Vertical line
+          if (i + 1 < commands.length) {
+            currentY = double.parse(commands[i + 1]);
+            path.lineTo(currentX, currentY);
+            i += 1;
+          }
+          break;
+
+        case 'Q': // Quadratic curve
+          if (i + 4 < commands.length) {
+            final x1 = double.parse(commands[i + 1]);
+            final y1 = double.parse(commands[i + 2]);
+            currentX = double.parse(commands[i + 3]);
+            currentY = double.parse(commands[i + 4]);
+            path.quadraticBezierTo(x1, y1, currentX, currentY);
+            i += 4;
+          }
+          break;
+
+        case 'C': // Cubic curve
+          if (i + 6 < commands.length) {
+            final x1 = double.parse(commands[i + 1]);
+            final y1 = double.parse(commands[i + 2]);
+            final x2 = double.parse(commands[i + 3]);
+            final y2 = double.parse(commands[i + 4]);
+            currentX = double.parse(commands[i + 5]);
+            currentY = double.parse(commands[i + 6]);
+            path.cubicTo(x1, y1, x2, y2, currentX, currentY);
+            i += 6;
+          }
+          break;
+
+        case 'Z': // Close path
+          path.close();
+          currentX = startX;
+          currentY = startY;
+          break;
+      }
+    }
+
+    return path;
+  }
+
+  static List<String> _tokenizePath(String pathString) {
+    // Simple tokenizer for SVG path commands
+    final tokens = <String>[];
+    final buffer = StringBuffer();
+
+    for (int i = 0; i < pathString.length; i++) {
+      final char = pathString[i];
+
+      if ('MLHVQCZmlhvqcz'.contains(char)) {
+        // Command character
+        if (buffer.isNotEmpty) {
+          tokens.add(buffer.toString().trim());
+          buffer.clear();
+        }
+        tokens.add(char);
+      } else if (char == ',' || char == ' ') {
+        // Separator
+        if (buffer.isNotEmpty) {
+          tokens.add(buffer.toString().trim());
+          buffer.clear();
+        }
+      } else {
+        // Number or decimal point
+        buffer.write(char);
+      }
+    }
+
+    if (buffer.isNotEmpty) {
+      tokens.add(buffer.toString().trim());
+    }
+
+    return tokens.where((token) => token.isNotEmpty).toList();
+  }
+
+  static void clearCache() {
+    _pathCache.clear();
+  }
+}
 
 class FletConfettiControl extends StatefulWidget {
   final Control? parent;
@@ -233,105 +375,210 @@ class _FletConfettiControlState extends State<FletConfettiControl> {
     }
 
     // Get all parameters from control attributes
-    final double emissionFrequency = widget.control.attrDouble("emission_frequency", 0.02)!;
-    final int numberOfParticles = widget.control.attrInt("number_of_particles", 10)!;
-    final double maxBlastForce = widget.control.attrDouble("max_blast_force", 20.0)!;
-    final double minBlastForce = widget.control.attrDouble("min_blast_force", 5.0)!;
-    final String blastDirectionalityStr = widget.control.attrString("blast_directionality", "directional")!;
-    final double blastDirection = widget.control.attrDouble("blast_direction", pi)!;
+    final double emissionFrequency =
+        widget.control.attrDouble("emission_frequency", 0.02)!;
+    final int numberOfParticles =
+        widget.control.attrInt("number_of_particles", 10)!;
+    final double maxBlastForce =
+        widget.control.attrDouble("max_blast_force", 20.0)!;
+    final double minBlastForce =
+        widget.control.attrDouble("min_blast_force", 5.0)!;
+    final String blastDirectionalityStr =
+        widget.control.attrString("blast_directionality", "directional")!;
+    final double blastDirection =
+        widget.control.attrDouble("blast_direction", pi)!;
     final double gravity = widget.control.attrDouble("gravity", 0.2)!;
     final bool shouldLoop = widget.control.attrBool("should_loop", false)!;
-    final bool displayTarget = widget.control.attrBool("display_target", false)!;
-    final String? strokeColorStr = widget.control.attrString("stroke_color", "black");
+    final bool displayTarget =
+        widget.control.attrBool("display_target", false)!;
+    final String? strokeColorStr =
+        widget.control.attrString("stroke_color", "black");
     final double strokeWidth = widget.control.attrDouble("stroke_width", 0.0)!;
-    final double minimumSizeWidth = widget.control.attrDouble("minimum_size_width", 20.0)!;
-    final double minimumSizeHeight = widget.control.attrDouble("minimum_size_height", 10.0)!;
-    final double maximumSizeWidth = widget.control.attrDouble("maximum_size_width", 30.0)!;
-    final double maximumSizeHeight = widget.control.attrDouble("maximum_size_height", 15.0)!;
-    final double particleDrag = widget.control.attrDouble("particle_drag", 0.05)!;
-    final double? canvasWidth = widget.control.attrDouble("canvas_width", null);
-    final double? canvasHeight = widget.control.attrDouble("canvas_height", null);
-    final bool pauseEmissionOnLowFrameRate = widget.control.attrBool("pause_emission_on_low_frame_rate", true)!;
-    final String? createParticlePathStr = widget.control.attrString("create_particle_path", null);
+
+    // Parse Size objects directly from JSON - simplified approach
+    Size minimumSize = const Size(20.0, 10.0); // default
+    final String? minSizeJson = widget.control.attrString("minimum_size", null);
+    if (minSizeJson != null && minSizeJson != "null") {
+      try {
+        final Map<String, dynamic> parsed = json.decode(minSizeJson);
+        minimumSize = Size(
+          parsed['width']?.toDouble() ?? 20.0,
+          parsed['height']?.toDouble() ?? 10.0,
+        );
+        debugPrint(
+            "FletConfetti: Parsed minimum_size: ${minimumSize.width}x${minimumSize.height}");
+      } catch (e) {
+        debugPrint("Error parsing minimum_size: $e");
+      }
+    }
+
+    Size maximumSize = const Size(30.0, 15.0); // default
+    final String? maxSizeJson = widget.control.attrString("maximum_size", null);
+    if (maxSizeJson != null && maxSizeJson != "null") {
+      try {
+        final Map<String, dynamic> parsed = json.decode(maxSizeJson);
+        maximumSize = Size(
+          parsed['width']?.toDouble() ?? 30.0,
+          parsed['height']?.toDouble() ?? 15.0,
+        );
+        debugPrint(
+            "FletConfetti: Parsed maximum_size: ${maximumSize.width}x${maximumSize.height}");
+      } catch (e) {
+        debugPrint("Error parsing maximum_size: $e");
+      }
+    }
+
+    // Validate size constraints and provide helpful debug info
+    if (minimumSize.width > maximumSize.width ||
+        minimumSize.height > maximumSize.height) {
+      debugPrint(
+          "FletConfetti: WARNING - minimumSize (${minimumSize.width}x${minimumSize.height}) is larger than maximumSize (${maximumSize.width}x${maximumSize.height}). This may cause unexpected behavior.");
+    }
+
+    if (minimumSize == maximumSize) {
+      debugPrint(
+          "FletConfetti: INFO - minimumSize and maximumSize are identical (${minimumSize.width}x${minimumSize.height}). All particles will be the same size with no variation.");
+    }
+
+    debugPrint(
+        "FletConfetti: Final size range: ${minimumSize.width}x${minimumSize.height} to ${maximumSize.width}x${maximumSize.height}");
+
+    Size? canvasSize;
+    final String? canvasSizeJson =
+        widget.control.attrString("canvas_size", null);
+    if (canvasSizeJson != null && canvasSizeJson != "null") {
+      try {
+        final Map<String, dynamic> parsed = json.decode(canvasSizeJson);
+        canvasSize = Size(
+          parsed['width']?.toDouble() ?? 400.0,
+          parsed['height']?.toDouble() ?? 300.0,
+        );
+      } catch (e) {
+        debugPrint("Error parsing canvas_size: $e");
+      }
+    }
+
+    final double particleDrag =
+        widget.control.attrDouble("particle_drag", 0.05)!;
+    final bool pauseEmissionOnLowFrameRate =
+        widget.control.attrBool("pause_emission_on_low_frame_rate", true)!;
+    final String? createParticlePathStr =
+        widget.control.attrString("create_particle_path", null);
     final String? particleShapeStr =
         widget.control.attrString("particle_shape", null);
+    final String? customParticlePathStr =
+        widget.control.attrString("custom_particle_path", null);
 
-    // Parse colors - check for explicit colors first, then theme
+    // Parse colors - themes are converted to colors in Python
     final String? colorListJs = widget.control.attrString("colors", null);
-    final String? themeStr = widget.control.attrString("theme", null);
 
     // Enhanced debugging
+    debugPrint("=== CONFETTI SIZE DEBUG ===");
+    debugPrint("Raw minimum_size JSON: $minSizeJson");
+    debugPrint("Raw maximum_size JSON: $maxSizeJson");
+    debugPrint("Raw canvas_size JSON: $canvasSizeJson");
+    debugPrint("Final minimumSize: $minimumSize");
+    debugPrint("Final maximumSize: $maximumSize");
+    debugPrint("Final canvasSize: $canvasSize");
     debugPrint("=== CONFETTI COLOR DEBUG ===");
     debugPrint("colorListJs: $colorListJs");
-    debugPrint("themeStr: $themeStr");
 
-    List<Color> colors = [Colors.red, Colors.blue, Colors.green, Colors.orange, Colors.purple];
+    List<Color> colors = [
+      Colors.red,
+      Colors.blue,
+      Colors.green,
+      Colors.orange,
+      Colors.purple
+    ];
 
     if (colorListJs != null &&
         colorListJs.isNotEmpty &&
         colorListJs != "null") {
-      // Explicit colors have priority
+      // Parse colors (includes both explicit colors and theme colors from Python)
       try {
         final List<dynamic> colorStrings = json.decode(colorListJs);
         colors = parseColors(Theme.of(context), colorStrings);
         debugPrint(
-            "✅ Using explicit colors: ${colorStrings.length} colors - $colorStrings");
+            "✅ Using colors: ${colorStrings.length} colors - $colorStrings");
       } catch (e) {
         debugPrint("❌ Error parsing colors: $e");
         debugPrint("Raw colorListJs: '$colorListJs'");
       }
-    } else if (themeStr != null && themeStr.isNotEmpty && themeStr != "null") {
-      // Use theme colors if no explicit colors
-      if (ConfettiThemes.isValidTheme(themeStr)) {
-        colors = ConfettiThemes.getThemeColors(themeStr);
-        debugPrint("✅ Using theme '$themeStr': ${colors.length} colors");
-      } else {
-        debugPrint("❌ Unknown theme '$themeStr', using default colors");
-      }
     } else {
-      debugPrint("ℹ️ No colors or theme specified, using default colors");
+      debugPrint("ℹ️ No colors specified, using default colors");
     }
 
     debugPrint("Final colors count: ${colors.length}");
     debugPrint("=== END COLOR DEBUG ===");
-    
+
     // Parse blast directionality
     BlastDirectionality blastDirectionality = BlastDirectionality.directional;
     if (blastDirectionalityStr == "explosive") {
       blastDirectionality = BlastDirectionality.explosive;
     }
-    
+
     // Parse stroke color
     Color strokeColor = Colors.black;
     if (strokeColorStr != null) {
-      strokeColor = parseColor(Theme.of(context), strokeColorStr) ?? Colors.black;
+      strokeColor =
+          parseColor(Theme.of(context), strokeColorStr) ?? Colors.black;
     }
-    
+
     // Create particle path function using new shape system
     Path Function(Size)? createParticlePath;
 
-    // Priority: particle_shape (new) > create_particle_path (deprecated)
-    String? shapeToUse = particleShapeStr ?? createParticlePathStr;
+    // Priority: custom_particle_path > particle_shape > create_particle_path (deprecated)
+    if (customParticlePathStr != null && customParticlePathStr.isNotEmpty) {
+      // Use custom SVG path
+      final customPath = SVGPathParser.parsePathString(customParticlePathStr);
+      if (customPath != null) {
+        createParticlePath = (Size size) {
+          // Scale the custom path to fit the particle size
+          final pathBounds = customPath.getBounds();
+          final scaleX = size.width / pathBounds.width;
+          final scaleY = size.height / pathBounds.height;
 
-    if (shapeToUse != null) {
-      createParticlePath = ParticleShapes.getShapeFunction(shapeToUse);
-      debugPrint("Using particle shape: $shapeToUse");
+          final scaledPath = customPath
+              .transform(Matrix4.diagonal3Values(scaleX, scaleY, 1.0).storage);
+
+          // Center the path
+          final offsetX = (size.width - pathBounds.width * scaleX) / 2;
+          final offsetY = (size.height - pathBounds.height * scaleY) / 2;
+          final centeredPath = scaledPath.shift(Offset(offsetX, offsetY));
+
+          return centeredPath;
+        };
+        debugPrint(
+            "Using custom SVG path: ${customParticlePathStr.substring(0, min(50, customParticlePathStr.length))}...");
+      } else {
+        debugPrint(
+            "Failed to parse custom SVG path, falling back to predefined shapes");
+      }
     }
 
-    // Fallback to original star implementation if shape not found
-    if (createParticlePath == null && createParticlePathStr == "star") {
-      createParticlePath = drawStar;
-      debugPrint("Using fallback star implementation");
-    }
-    
-    // Create canvas size
-    Size? canvas;
-    if (canvasWidth != null && canvasHeight != null) {
-      canvas = Size(canvasWidth, canvasHeight);
-    }
-    
+    // If no custom path or parsing failed, use predefined shapes
+    if (createParticlePath == null) {
+      String? shapeToUse = particleShapeStr ?? createParticlePathStr;
 
-    
+      if (shapeToUse != null) {
+        createParticlePath = ParticleShapes.getShapeFunction(shapeToUse);
+        debugPrint("Using particle shape: $shapeToUse");
+      }
+
+      // Fallback to original star implementation if shape not found
+      if (createParticlePath == null && createParticlePathStr == "star") {
+        createParticlePath = drawStar;
+        debugPrint("Using fallback star implementation");
+      }
+    }
+
+    // Use parsed canvas size directly
+    Size? canvas = canvasSize;
+
+    // Debug: Verify sizes being passed to ConfettiWidget
+    debugPrint(
+        "FletConfetti: Creating ConfettiWidget with minimumSize: ${minimumSize.width}x${minimumSize.height}, maximumSize: ${maximumSize.width}x${maximumSize.height}");
+
     Widget confettiWidget = ConfettiWidget(
       key: ValueKey(
           "confetti_$_controllerVersion"), // Force rebuild when controller changes
@@ -348,14 +595,15 @@ class _FletConfettiControlState extends State<FletConfettiControl> {
       colors: colors,
       strokeColor: strokeColor,
       strokeWidth: strokeWidth,
-      minimumSize: Size(minimumSizeWidth, minimumSizeHeight),
-      maximumSize: Size(maximumSizeWidth, maximumSizeHeight),
+      minimumSize: minimumSize,
+      maximumSize: maximumSize,
       particleDrag: particleDrag,
       canvas: canvas,
       pauseEmissionOnLowFrameRate: pauseEmissionOnLowFrameRate,
       createParticlePath: createParticlePath,
     );
 
-    return constrainedControl(context, confettiWidget, widget.parent, widget.control);
+    return constrainedControl(
+        context, confettiWidget, widget.parent, widget.control);
   }
 }
