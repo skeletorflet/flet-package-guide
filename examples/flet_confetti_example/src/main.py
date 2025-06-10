@@ -158,9 +158,8 @@ def main(page: ft.Page):
     def randomize_center_confetti():
         """Randomize center confetti properties and update display"""
         # Randomize colors
-        confetti_center.colors = [
-            ft.Colors.random() for _ in range(random.randint(3, 6))
-        ]
+        confetti_center.theme = random.choice(list(ConfettiTheme))
+        confetti_center.opacity = random.uniform(0.5, 1.0)
 
         # Randomize shape
         shapes = [shape for shape in ParticleShape if shape.value != "None"]
