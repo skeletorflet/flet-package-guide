@@ -192,29 +192,8 @@ def period(self, value: Optional[Duration]):
 ```
 
 ```dart
-// Dart - Parse duration from JSON
+// Dart - Parse duration from JSON using built-in function
 final Duration duration = parseDuration(widget.control, "duration") ?? Duration(milliseconds: 1500);
-
-// Custom parseDuration function example
-Duration? parseDuration(Control control, String attrName) {
-  final String? durationJson = control.attrString(attrName, null);
-  if (durationJson != null) {
-    try {
-      final Map<String, dynamic> data = json.decode(durationJson);
-      return Duration(
-        microseconds: data['microseconds'] ?? 0,
-        milliseconds: data['milliseconds'] ?? 0,
-        seconds: data['seconds'] ?? 0,
-        minutes: data['minutes'] ?? 0,
-        hours: data['hours'] ?? 0,
-        days: data['days'] ?? 0,
-      );
-    } catch (e) {
-      return null;
-    }
-  }
-  return null;
-}
 ```
 
 ### Complex Data Types
@@ -232,17 +211,9 @@ def colors(self, value: Optional[List[ColorValue]]):
 ```
 
 ```dart
-// Dart - Parse JSON list
-final String? colorListJs = widget.control.attrString("colors", null);
-List<Color> colors = [Colors.red, Colors.blue, Colors.green]; // default
-if (colorListJs != null) {
-  try {
-    final List<dynamic> colorStrings = json.decode(colorListJs);
-    colors = parseColors(Theme.of(context), colorStrings);
-  } catch (e) {
-    // Handle parsing errors
-  }
-}
+// Dart - Parse JSON list using built-in function
+List<Color> colors = parseColors(Theme.of(context), widget.control, "colors") ?? 
+    [Colors.red, Colors.blue, Colors.green]; // default
 ```
 
 #### Complex JSON Objects
@@ -514,11 +485,7 @@ class FletPackageGuideControl extends StatefulWidget {
     // Parse properties
     final String? colorListJs = widget.control.attrString("colors", null);
     List<Color> colors = [Colors.red, Colors.blue, Colors.green];
-    if (colorListJs != null) {
-      try {
-        final List<dynamic> colorStrings = json.decode(colorListJs);
-        colors = parseColors(Theme.of(context), colorStrings);
-      } catch (e) {}
+    colors = parseColors(Theme.of(context), widget.control, "colors") ?? colors;
     }
     
     // Build widget
