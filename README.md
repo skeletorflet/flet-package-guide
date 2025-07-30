@@ -1,3 +1,89 @@
+# Flet Extension Development Guide
+
+This guide covers the basic setup for developing Flet extensions with Flutter packages.
+
+## Initial Setup
+
+### 1. Create Virtual Environment
+```bash
+uv venv
+.venv\Scripts\activate
+uv pip install "flet[all]" --upgrade
+```
+
+### 2. Generate Extension Template
+```bash
+uv run flet create --template extension --project-name flet-extension
+```
+
+## Configuration
+
+### 3. Fix Path Dependencies
+In `examples\flet_extension_example\pyproject.toml`, replace all single backslashes `\` with double backslashes `\\`:
+
+```toml
+[tool.poetry.dependencies]
+flet-extension = { path = "..\\..\\", editable = true }
+
+[tool.poetry.group.dev.dependencies]
+flet = {extras = ["all"], version = "0.28.3"}
+flet-extension = {path = "..\\..\\", develop = true}
+```
+
+**Important**: This path fix is required for successful builds.
+
+## Adding Flutter Packages
+
+### 4. Install Flutter Dependencies
+Navigate to the Flutter extension directory and add packages:
+
+```bash
+cd src\flutter\flet_extension
+flutter pub add pro_image_editor  # or any package from pub.dev
+```
+
+## Development Workflow
+
+### 5. Main Development Files
+- **Dart**: `src\flutter\flet_extension\lib\src\flet_extension.dart`
+- **Python**: `src\flet_extension\flet_extension.py`
+
+### 6. Testing Changes
+- **Dart changes**: Require `flet build` to see effects
+- **Python changes**: Use `uv pip install .` (sufficient for testing)
+
+## Building and Running
+
+### 7. Build Process
+From the example directory:
+```bash
+cd examples\flet_extension_example
+uv run --active flet build windows -v
+```
+
+**Note**: `--active` prevents creating unnecessary `.venv` in the example folder.
+
+### 8. Running the Extension
+```bash
+uv run --active flet run
+```
+Run from the example directory where `pyproject.toml` is located.
+
+## Troubleshooting
+
+### 9. Build Issues
+If builds fail without apparent errors in Python or Dart code:
+1. Delete all `build` folders
+2. Delete all `.egg` folders  
+3. Rebuild the extension
+
+**Note**: Built extensions only work on the target platform they were built for.
+
+## Environment Notes
+- Always use the base `.venv` environment
+- The extension template provides a working foundation for Flutter package integration
+- Path corrections are critical for Windows development
+
 # Flutter to Flet Extension Development Guide
 
 This guide explains how to create custom Flet extensions that integrate Flutter packages, covering data parsing, control types, parameters, and implementation patterns.
